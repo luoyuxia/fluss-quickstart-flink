@@ -1,0 +1,66 @@
+services:
+  coordinator-server:
+    restart: always
+    image: yuxialuo/fluss
+    command: coordinatorServer
+    depends_on:
+      - zookeeper
+    environment:
+      - |
+        FLUSS_PROPERTIES=
+        zookeeper.address: zookeeper:2181
+        coordinator.host: coordinator-server
+  tablet-server:
+    restart: always
+    image: yuxialuo/fluss
+    command: tabletServer
+    depends_on:
+      - coordinator-server
+    environment:
+      - |
+        FLUSS_PROPERTIES=
+        zookeeper.address: zookeeper:2181
+        tablet-server.host: tablet-server
+        data.dir: /tmp/fluss/data
+        remote.data.dir: /tmp/fluss/remote-data
+    volumes:
+      - shared-tmpfs:/tmp/fluss
+  zookeeper:
+    restart: always
+    image: zookeeper:3.8.4
+
+  sql-client:
+    user: flink:flink
+    image: yuxialuo/fluss-quickstart-flink
+    depends_on:
+      - jobmanager
+    environment:
+      FLINK_JOBMANAGER_HOST: jobmanager
+    volumes:
+      - shared-tmpfs:/tmp/fluss
+  jobmanager:
+    user: flink:flink
+    image: apache/flink:1.18.1-scala_2.12
+    ports:
+      - "8083:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+  taskmanager:
+    user: flink:flink
+    image: apache/flink:1.18.1-scala_2.12
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 5
+    volumes:
+      - shared-tmpfs:/tmp/fluss
+
+volumes:
+  shared-tmpfs:

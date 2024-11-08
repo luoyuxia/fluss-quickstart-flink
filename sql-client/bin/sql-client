@@ -1,0 +1,3 @@
+#!/bin/bash
+
+${FLINK_HOME}/bin/sql-client.sh -l ${SQL_CLIENT_HOME}/lib -i ${SQL_CLIENT_HOME}/sql/sql-client.sql
