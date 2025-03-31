@@ -1,14 +1,39 @@
 services:
-  sql-client:
-    user: flink:flink
-    image: yuxialuo/fluss-quickstart-flink
+  coordinator-server:
+    image: fluss/fluss
+    command: coordinatorServer
     depends_on:
-      - jobmanager
+      - zookeeper
     environment:
-      FLINK_JOBMANAGER_HOST: jobmanager
+      - |
+        FLUSS_PROPERTIES=
+        zookeeper.address: zookeeper:2181
+        coordinator.host: coordinator-server
+        remote.data.dir: /tmp/fluss/remote-data
+        lakehouse.storage: paimon
+        paimon.catalog.metastore: filesystem
+        paimon.catalog.warehouse: /tmp/paimon
+
+  tablet-server:
+    image: fluss/fluss
+    command: tabletServer
+    depends_on:
+      - coordinator-server
+    environment:
+      - |
+        FLUSS_PROPERTIES=
+        zookeeper.address: zookeeper:2181
+        tablet-server.host: tablet-server
+        data.dir: /tmp/fluss/data
+        remote.data.dir: /tmp/fluss/remote-data
+        lakehouse.storage: paimon
+        paimon.catalog.metastore: filesystem
+        paimon.catalog.warehouse: /tmp/paimon
+  zookeeper:
+    restart: always
+    image: zookeeper:3.8.4
   jobmanager:
-    user: flink:flink
-    image: apache/flink:1.18.1-scala_2.12
+    image: fluss/quickstart-flink
     ports:
       - "8083:8081"
     command: jobmanager
@@ -16,9 +41,10 @@ services:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
+    volumes:
+      - shared-tmpfs:/tmp/paimon
   taskmanager:
-    user: flink:flink
-    image: apache/flink:1.18.1-scala_2.12
+    image: fluss/quickstart-flink
     depends_on:
       - jobmanager
     command: taskmanager
@@ -26,4 +52,13 @@ services:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
-        taskmanager.numberOfTaskSlots: 5
+        taskmanager.numberOfTaskSlots: 10
+    volumes:
+      - shared-tmpfs:/tmp/paimon
+
+volumes:
+  shared-tmpfs:
+    driver: local
+    driver_opts:
+      type: "tmpfs"
+      device: "tmpfs"

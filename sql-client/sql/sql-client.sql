@@ -7,8 +7,8 @@ CREATE TEMPORARY TABLE source_order (
     `clerk` STRING
 ) WITH (
   'connector' = 'faker',
-  'rows-per-second' = '1000',
-  'number-of-rows' = '100000000',
+  'rows-per-second' = '10',
+  'number-of-rows' = '10000',
   'fields.order_key.expression' = '#{number.numberBetween ''0'',''100000000''}',
   'fields.cust_key.expression' = '#{number.numberBetween ''0'',''20''}',
   'fields.total_price.expression' = '#{number.randomDouble ''3'',''1'',''1000''}',
